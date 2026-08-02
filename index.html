@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Rumbo a Cancún</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-app-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-auth-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-firestore-compat.min.js"></script>
+<style>
+  :root{
+    --sand: #f3e7d0;
+    --sand-deep: #e9d8b6;
+    --sea: #0d6e6d;
+    --sea-deep: #0a4f4f;
+    --turquoise: #4fd1c5;
+    --coral: #ff6b52;
+    --ink: #17323d;
+    --paper: #fbf5e8;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background: var(--sand);
+    background-image:
+      radial-gradient(circle at 15% 8%, rgba(255,255,255,0.5), transparent 40%),
+      radial-gradient(circle at 90% 0%, rgba(255,255,255,0.35), transparent 35%);
+    font-family:'Space Grotesk', sans-serif;
+    color: var(--ink);
+    min-height:100vh;
+    padding: 28px 16px 60px;
+  }
+  .wrap{max-width:640px; margin:0 auto;}
+
+  header{
+    text-align:center;
+    margin-bottom:22px;
+  }
+  header .eyebrow{
+    font-size:12px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color: var(--sea-deep);
+    opacity:.7;
+  }
+  h1{
+    font-family:'Fraunces', serif;
+    font-weight:700;
+    font-size: 40px;
+    margin:4px 0 0;
+    color: var(--sea-deep);
+  }
+
+  .countdown{
+    margin: 22px 0;
+    background: linear-gradient(160deg, var(--sea) 0%, var(--sea-deep) 100%);
+    border-radius: 22px;
+    padding: 22px 24px;
+    color: var(--paper);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 16px;
+    position:relative;
+    overflow:hidden;
+    box-shadow: 0 12px 30px -12px rgba(10,79,79,0.55);
+  }
+  .countdown::after{
+    content:"";
+    position:absolute;
+    right:-30px; bottom:-40px;
+    width:160px; height:160px;
+    background: radial-gradient(circle, rgba(255,255,255,.18), transparent 70%);
+  }
+  .countdown .num{
+    font-family:'Fraunces', serif;
+    font-weight:700;
+    font-size: 56px;
+    line-height:1;
+  }
+  .countdown .num-label{
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:.14em;
+    opacity:.85;
+    margin-top:4px;
+  }
+  .countdown .date-side{
+    text-align:right;
+    font-size:13px;
+    z-index:1;
+  }
+  .countdown .date-side label{
+    display:block;
+    opacity:.75;
+    margin-bottom:4px;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.1em;
+  }
+  .countdown input[type="date"]{
+    background: rgba(255,255,255,.14);
+    border: 1px solid rgba(255,255,255,.4);
+    border-radius: 8px;
+    color: var(--paper);
+    font-family:'Space Grotesk', sans-serif;
+    padding: 6px 8px;
+    font-size: 13px;
+    color-scheme: dark;
+  }
+
+  .card{
+    background: var(--paper);
+    border-radius: 18px;
+    padding: 20px 22px;
+    margin-bottom:18px;
+    box-shadow: 0 6px 18px -10px rgba(23,50,61,0.25);
+    border: 1px solid rgba(23,50,61,0.06);
+  }
+  .card h2{
+    font-family:'Fraunces', serif;
+    font-size: 18px;
+    margin: 0 0 14px;
+    color: var(--sea-deep);
+  }
+
+  .budget-row{
+    display:flex;
+    gap:12px;
+    align-items:center;
+    margin-bottom: 14px;
+  }
+  .budget-row label{
+    font-size:13px;
+    white-space:nowrap;
+    opacity:.75;
+  }
+  .budget-row input{
+    flex:1;
+    border: 1.5px solid var(--sand-deep);
+    background: #fff;
+    border-radius: 10px;
+    padding: 9px 10px;
+    font-family:'Space Grotesk', sans-serif;
+    font-size: 15px;
+    color: var(--ink);
+  }
+  .budget-row input:focus{outline:2px solid var(--turquoise); outline-offset:1px;}
+
+  .tide{
+    position:relative;
+    height: 34px;
+    border-radius: 10px;
+    background: var(--sand-deep);
+    overflow:hidden;
+    margin-bottom: 10px;
+  }
+  .tide-fill{
+    position:absolute;
+    left:0; top:0; bottom:0;
+    background: linear-gradient(90deg, var(--turquoise), var(--sea));
+    transition: width .4s ease;
+    border-radius: 10px 0 0 10px;
+  }
+  .tide-fill.over{ background: linear-gradient(90deg, var(--coral), #c73f2d); }
+  .tide-label{
+    position:relative;
+    z-index:1;
+    height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 0 12px;
+    font-size: 12.5px;
+    font-weight:600;
+    color: var(--ink);
+    mix-blend-mode: normal;
+  }
+  .stats-row{
+    display:flex;
+    justify-content:space-between;
+    font-size: 13px;
+  }
+  .stats-row .figure{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size: 17px;
+    display:block;
+  }
+  .stats-row .stat{ text-align:left; }
+  .stats-row .stat.right{ text-align:right; }
+  .stats-row .stat.remaining .figure{ color: var(--sea); }
+  .stats-row .stat.remaining.negative .figure{ color: var(--coral); }
+
+  form.add-item{
+    display:grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .row2{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  form.add-item input{
+    border: 1.5px solid var(--sand-deep);
+    background: #fff;
+    border-radius: 10px;
+    padding: 10px 11px;
+    font-family:'Space Grotesk', sans-serif;
+    font-size: 14.5px;
+    color: var(--ink);
+    width:100%;
+  }
+  form.add-item input:focus{outline:2px solid var(--turquoise); outline-offset:1px;}
+  form.add-item button{
+    border:none;
+    background: var(--coral);
+    color: #fff;
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:600;
+    font-size: 14.5px;
+    padding: 11px;
+    border-radius: 10px;
+    cursor:pointer;
+    transition: transform .15s ease, background .15s ease;
+  }
+  form.add-item button:hover{ background:#e5573f; }
+  form.add-item button:active{ transform: scale(0.98); }
+
+  .items{
+    list-style:none;
+    margin: 16px 0 0;
+    padding:0;
+  }
+  .items li{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 10px;
+    padding: 11px 4px;
+    border-bottom: 1px solid rgba(23,50,61,0.08);
+  }
+  .items li:last-child{ border-bottom:none; }
+  .item-main{ min-width:0; }
+  .item-name{ font-weight:600; font-size:14.5px; }
+  .item-platform{ font-size:12px; opacity:.65; }
+  .item-right{ display:flex; align-items:center; gap:10px; flex-shrink:0; }
+  .item-price{ font-family:'Fraunces', serif; font-weight:600; font-size:15px; color: var(--sea-deep); }
+  .del-btn{
+    background:none;
+    border:none;
+    color: var(--coral);
+    font-size: 18px;
+    line-height:1;
+    cursor:pointer;
+    padding: 2px 4px;
+    opacity:.6;
+  }
+  .del-btn:hover{ opacity:1; }
+
+  .empty{
+    text-align:center;
+    padding: 22px 10px;
+    font-size:13.5px;
+    color: var(--ink);
+    opacity:.55;
+  }
+
+  .total-card{
+    background: linear-gradient(160deg, var(--sea-deep), var(--sea));
+    color: var(--paper);
+  }
+  .total-card h2{ color: var(--paper); opacity:.85; }
+  .total-figure{
+    font-family:'Fraunces', serif;
+    font-size: 34px;
+    font-weight:700;
+  }
+
+  @media (max-width:420px){
+    h1{font-size:32px;}
+    .countdown .num{font-size:44px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Planeador de viaje</div>
+    <h1>Rumbo a Cancún 🌊</h1>
+    <div id="saveStatus" style="font-size:12px;margin-top:8px;opacity:.75;"></div>
+  </header>
+
+  <div class="countdown">
+    <div>
+      <div class="num" id="daysNum">–</div>
+      <div class="num-label" id="daysLabel">días para la playita</div>
+    </div>
+    <div class="date-side">
+      <label for="tripDate">Fecha del viaje</label>
+      <input type="date" id="tripDate">
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Presupuesto</h2>
+    <div class="budget-row">
+      <label for="budgetInput">Presupuesto total</label>
+      <input type="number" id="budgetInput" placeholder="$0.00" min="0" step="0.01">
+    </div>
+    <div class="tide">
+      <div class="tide-fill" id="tideFill" style="width:0%"></div>
+      <div class="tide-label">
+        <span id="tidePercent">0%</span>
+        <span id="tideAmounts">$0 de $0</span>
+      </div>
+    </div>
+    <div class="stats-row">
+      <div class="stat">
+        <span>Gastado</span>
+        <span class="figure" id="spentFigure">$0.00</span>
+      </div>
+      <div class="stat right remaining" id="remainingStat">
+        <span>Restante</span>
+        <span class="figure" id="remainingFigure">$0.00</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Agregar cosa que ocupas</h2>
+    <form class="add-item" id="addForm">
+      <input type="text" id="itemName" placeholder="¿Qué necesitas? (ej. traje de baño)" required>
+      <div class="row2">
+        <input type="number" id="itemPrice" placeholder="Precio" min="0" step="0.01" required>
+        <input type="text" id="itemPlatform" placeholder="Plataforma (Amazon, Liverpool...)">
+      </div>
+      <button type="submit">Agregar a la lista</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Lista de cosas</h2>
+    <ul class="items" id="itemsList"></ul>
+    <div class="empty" id="emptyState">Aún no agregas nada. ¡Empieza tu lista! 🏖️</div>
+  </div>
+
+  <div class="card total-card">
+    <h2>Total acumulado</h2>
+    <div class="total-figure" id="totalFigure">$0.00</div>
+  </div>  <div class="card">
+    <h2>Respaldo manual</h2>
+    <p style="font-size:12.5px;opacity:.7;margin-top:-6px;">
+      Si el guardado automático falla, copia este código y pégalo la próxima vez para recuperar tu lista.
+    </p>
+    <textarea id="backupText" readonly rows="3" style="width:100%;font-family:monospace;font-size:11px;border:1.5px solid var(--sand-deep);border-radius:10px;padding:8px;background:#fff;color:var(--ink);"></textarea>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <button id="copyBackupBtn" type="button" style="flex:1;border:none;background:var(--sea);color:#fff;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13px;padding:9px;border-radius:10px;cursor:pointer;">Copiar código</button>
+    </div>
+    <div style="margin-top:14px;">
+      <label style="font-size:12px;opacity:.7;display:block;margin-bottom:6px;">Restaurar desde un código guardado</label>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="restoreInput" placeholder="Pega aquí tu código" style="flex:1;border:1.5px solid var(--sand-deep);border-radius:10px;padding:9px 10px;font-size:13px;">
+        <button id="restoreBtn" type="button" style="border:none;background:var(--coral);color:#fff;font-weight:600;font-size:13px;padding:9px 14px;border-radius:10px;cursor:pointer;">Restaurar</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyC1WJcaZJF7oc4ju0a5H0gdMAaGVQj-4XQ",
+  authDomain: "viaje-cancun.firebaseapp.com",
+  projectId: "viaje-cancun",
+  storageBucket: "viaje-cancun.firebasestorage.app",
+  messagingSenderId: "457700664425",
+  appId: "1:457700664425:web:2e47d52cdd0aa18caeeef8"
+};
+
+let state = { budget: null, tripDate: null, items: [] };
+let tripDocRef = null;
+
+const $ = id => document.getElementById(id);
+const money = n => '$' + Number(n||0).toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2});
+
+function setStatus(msg, isError){
+  const el = $('saveStatus');
+  el.textContent = msg;
+  el.style.color = isError ? '#c73f2d' : '';
+}
+
+async function loadState(){
+  if(!tripDocRef){ render(); return; }
+  try{
+    const snap = await tripDocRef.get();
+    if(snap.exists){
+      state = snap.data();
+    }
+    setStatus('Conectado a Firebase ✓');
+  }catch(e){
+    setStatus('⚠️ Error al cargar de Firebase: ' + (e && e.message ? e.message : e), true);
+  }
+  render();
+}
+
+async function saveState(){
+  if(!tripDocRef){
+    setStatus('⚠️ Sin conexión a Firebase todavía, no se guardó.', true);
+    return;
+  }
+  try{
+    await tripDocRef.set(state);
+    setStatus('Guardado en Firebase ✓');
+  }catch(e){
+    setStatus('⚠️ Error al guardar en Firebase: ' + (e && e.message ? e.message : e), true);
+    console.error('No se pudo guardar', e);
+  }
+}
+
+function initFirebase(){
+  try{
+    if(typeof firebase === 'undefined'){
+      setStatus('⚠️ No se pudo cargar el SDK de Firebase. La app funciona pero no guarda en la nube.', true);
+      render();
+      return;
+    }
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    tripDocRef = db.collection('trips').doc('cancun');
+
+    setStatus('Conectando...');
+    auth.onAuthStateChanged((user)=>{
+      if(user){ loadState(); }
+    });
+    auth.signInAnonymously().catch((e)=>{
+      setStatus('⚠️ Error al iniciar sesión: ' + (e && e.message ? e.message : e), true);
+      render();
+    });
+  }catch(e){
+    setStatus('⚠️ Error al iniciar Firebase: ' + (e && e.message ? e.message : e), true);
+    render();
+  }
+}
+
+function computeDays(){
+  if(!state.tripDate){
+    $('daysNum').textContent = '–';
+    $('daysLabel').textContent = 'ponle fecha a tu viaje';
+    return;
+  }
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const trip = new Date(state.tripDate + 'T00:00:00');
+  const diffMs = trip - today;
+  const diffDays = Math.round(diffMs / 86400000);
+  if(diffDays > 0){
+    $('daysNum').textContent = diffDays;
+    $('daysLabel').textContent = diffDays === 1 ? 'día para la playita' : 'días para la playita';
+  } else if(diffDays === 0){
+    $('daysNum').textContent = '🎉';
+    $('daysLabel').textContent = '¡hoy te vas!';
+  } else {
+    $('daysNum').textContent = '✔';
+    $('daysLabel').textContent = '¡ya disfrutaste Cancún!';
+  }
+}
+
+function computeMoney(){
+  const total = state.items.reduce((sum,it)=> sum + Number(it.price||0), 0);
+  const budget = Number(state.budget || 0);
+  const remaining = budget - total;
+  const pct = budget > 0 ? Math.min(100, (total/budget)*100) : 0;
+
+  $('totalFigure').textContent = money(total);
+  $('spentFigure').textContent = money(total);
+  $('remainingFigure').textContent = money(remaining);
+  $('tidePercent').textContent = Math.round(budget>0 ? (total/budget)*100 : 0) + '%';
+  $('tideAmounts').textContent = money(total) + ' de ' + money(budget);
+  $('tideFill').style.width = pct + '%';
+
+  const fillEl = $('tideFill');
+  const remStat = $('remainingStat');
+  if(remaining < 0){
+    fillEl.classList.add('over');
+    remStat.classList.add('negative');
+  } else {
+    fillEl.classList.remove('over');
+    remStat.classList.remove('negative');
+  }
+}
+
+function renderItems(){
+  const list = $('itemsList');
+  const empty = $('emptyState');
+  list.innerHTML = '';
+  if(state.items.length === 0){
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  state.items.forEach((it, idx) => {
+    const li = document.createElement('li');
+    li.innerHTML = `
+      <div class="item-main">
+        <div class="item-name"></div>
+        <div class="item-platform"></div>
+      </div>
+      <div class="item-right">
+        <div class="item-price"></div>
+        <button class="del-btn" title="Eliminar" data-idx="${idx}">✕</button>
+      </div>
+    `;
+    li.querySelector('.item-name').textContent = it.name;
+    li.querySelector('.item-platform').textContent = it.platform || 'Sin plataforma';
+    li.querySelector('.item-price').textContent = money(it.price);
+    list.appendChild(li);
+  });
+  list.querySelectorAll('.del-btn').forEach(btn=>{
+    btn.addEventListener('click', async (e)=>{
+      const idx = Number(e.currentTarget.dataset.idx);
+      state.items.splice(idx,1);
+      render();
+      await saveState();
+    });
+  });
+}
+
+function render(){
+  $('budgetInput').value = state.budget ?? '';
+  $('tripDate').value = state.tripDate ?? '';
+  computeDays();
+  computeMoney();
+  renderItems();
+  $('backupText').value = btoa(unescape(encodeURIComponent(JSON.stringify(state))));
+}
+
+$('tripDate').addEventListener('change', async (e)=>{
+  state.tripDate = e.target.value || null;
+  computeDays();
+  await saveState();
+});
+
+$('budgetInput').addEventListener('input', async (e)=>{
+  state.budget = e.target.value === '' ? null : Number(e.target.value);
+  computeMoney();
+  await saveState();
+});
+
+$('addForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const name = $('itemName').value.trim();
+  const price = Number($('itemPrice').value);
+  const platform = $('itemPlatform').value.trim();
+  if(!name || isNaN(price)) return;
+  state.items.push({ name, price, platform });
+  $('itemName').value = '';
+  $('itemPrice').value = '';
+  $('itemPlatform').value = '';
+  render();
+  await saveState();
+});
+
+$('copyBackupBtn').addEventListener('click', async ()=>{
+  const text = $('backupText').value;
+  try{
+    await navigator.clipboard.writeText(text);
+    const btn = $('copyBackupBtn');
+    const original = btn.textContent;
+    btn.textContent = '¡Copiado!';
+    setTimeout(()=> btn.textContent = original, 1500);
+  }catch(e){
+    $('backupText').select();
+  }
+});
+
+$('restoreBtn').addEventListener('click', async ()=>{
+  const code = $('restoreInput').value.trim();
+  if(!code) return;
+  try{
+    const decoded = decodeURIComponent(escape(atob(code)));
+    const parsed = JSON.parse(decoded);
+    state = parsed;
+    $('restoreInput').value = '';
+    render();
+    setStatus('Restaurado desde código ✓');
+    await saveState();
+  }catch(e){
+    setStatus('⚠️ Ese código no es válido.', true);
+  }
+});
+
+initFirebase();
+</script>
+</body>
+</html>
