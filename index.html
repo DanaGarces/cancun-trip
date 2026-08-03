@@ -214,6 +214,17 @@
     width:100%;
   }
   form.add-item input:focus{outline:2px solid var(--turquoise); outline-offset:1px;}
+  form.add-item select{
+    border: 1.5px solid var(--sand-deep);
+    background: #fff;
+    border-radius: 10px;
+    padding: 10px 11px;
+    font-family:'Space Grotesk', sans-serif;
+    font-size: 14.5px;
+    color: var(--ink);
+    width:100%;
+  }
+  form.add-item select:focus{outline:2px solid var(--turquoise); outline-offset:1px;}
   form.add-item button{
     border:none;
     background: var(--coral);
@@ -337,20 +348,32 @@
         <input type="number" id="itemPrice" placeholder="Precio" min="0" step="0.01" required>
         <input type="text" id="itemPlatform" placeholder="Plataforma (Amazon, Liverpool...)">
       </div>
+      <select id="itemCategory">
+        <option value="Ropa para él">Ropa para él</option>
+        <option value="Ropa para ella">Ropa para ella</option>
+        <option value="Objetos playeros">Objetos playeros</option>
+        <option value="Belleza y cuidado personal">Belleza y cuidado personal</option>
+        <option value="Equipaje">Equipaje</option>
+        <option value="Curiosidades">Curiosidades</option>
+        <option value="Electrónicos">Electrónicos</option>
+        <option value="Otros">Otros</option>
+      </select>
       <button type="submit">Agregar a la lista</button>
     </form>
   </div>
 
   <div class="card">
     <h2>Lista de cosas</h2>
-    <ul class="items" id="itemsList"></ul>
+    <div id="itemsByCategory"></div>
     <div class="empty" id="emptyState">Aún no agregas nada. ¡Empieza tu lista! 🏖️</div>
   </div>
 
   <div class="card total-card">
     <h2>Total acumulado</h2>
     <div class="total-figure" id="totalFigure">$0.00</div>
-  </div>  <div class="card">
+  </div>
+
+  <div class="card">
     <h2>Respaldo manual</h2>
     <p style="font-size:12.5px;opacity:.7;margin-top:-6px;">
       Si el guardado automático falla, copia este código y pégalo la próxima vez para recuperar tu lista.
@@ -494,32 +517,64 @@ function computeMoney(){
 }
 
 function renderItems(){
-  const list = $('itemsList');
+  const container = $('itemsByCategory');
   const empty = $('emptyState');
-  list.innerHTML = '';
+  container.innerHTML = '';
   if(state.items.length === 0){
     empty.style.display = 'block';
     return;
   }
   empty.style.display = 'none';
+
+  const groups = {};
   state.items.forEach((it, idx) => {
-    const li = document.createElement('li');
-    li.innerHTML = `
-      <div class="item-main">
-        <div class="item-name"></div>
-        <div class="item-platform"></div>
-      </div>
-      <div class="item-right">
-        <div class="item-price"></div>
-        <button class="del-btn" title="Eliminar" data-idx="${idx}">✕</button>
-      </div>
-    `;
-    li.querySelector('.item-name').textContent = it.name;
-    li.querySelector('.item-platform').textContent = it.platform || 'Sin plataforma';
-    li.querySelector('.item-price').textContent = money(it.price);
-    list.appendChild(li);
+    const cat = it.category || 'Sin categoría';
+    if(!groups[cat]) groups[cat] = [];
+    groups[cat].push({ ...it, idx });
   });
-  list.querySelectorAll('.del-btn').forEach(btn=>{
+
+  Object.keys(groups).sort().forEach(cat => {
+    const items = groups[cat];
+    const subtotal = items.reduce((sum,it)=> sum + Number(it.price||0), 0);
+
+    const section = document.createElement('div');
+    section.style.marginBottom = '14px';
+
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:6px 4px;border-bottom:2px solid var(--sand-deep);margin-bottom:2px;';
+    header.innerHTML = `
+      <span style="font-family:'Fraunces',serif;font-weight:600;font-size:14px;color:var(--sea-deep);">${cat}</span>
+      <span style="font-family:'Fraunces',serif;font-weight:600;font-size:13.5px;color:var(--sea-deep);">${money(subtotal)}</span>
+    `;
+    section.appendChild(header);
+
+    const ul = document.createElement('ul');
+    ul.className = 'items';
+    ul.style.margin = '0';
+
+    items.forEach(it => {
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <div class="item-main">
+          <div class="item-name"></div>
+          <div class="item-platform"></div>
+        </div>
+        <div class="item-right">
+          <div class="item-price"></div>
+          <button class="del-btn" title="Eliminar" data-idx="${it.idx}">✕</button>
+        </div>
+      `;
+      li.querySelector('.item-name').textContent = it.name;
+      li.querySelector('.item-platform').textContent = it.platform || 'Sin plataforma';
+      li.querySelector('.item-price').textContent = money(it.price);
+      ul.appendChild(li);
+    });
+
+    section.appendChild(ul);
+    container.appendChild(section);
+  });
+
+  container.querySelectorAll('.del-btn').forEach(btn=>{
     btn.addEventListener('click', async (e)=>{
       const idx = Number(e.currentTarget.dataset.idx);
       state.items.splice(idx,1);
@@ -555,8 +610,9 @@ $('addForm').addEventListener('submit', async (e)=>{
   const name = $('itemName').value.trim();
   const price = Number($('itemPrice').value);
   const platform = $('itemPlatform').value.trim();
+  const category = $('itemCategory').value;
   if(!name || isNaN(price)) return;
-  state.items.push({ name, price, platform });
+  state.items.push({ name, price, platform, category });
   $('itemName').value = '';
   $('itemPrice').value = '';
   $('itemPlatform').value = '';
