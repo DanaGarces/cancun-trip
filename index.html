@@ -554,19 +554,21 @@ function renderItems(){
 
     items.forEach(it => {
       const li = document.createElement('li');
+      const checked = !!it.bought;
       li.innerHTML = `
-        <div class="item-main">
-          <div class="item-name"></div>
+        <input type="checkbox" class="bought-check" data-idx="${it.idx}" ${checked ? 'checked' : ''} style="width:18px;height:18px;flex-shrink:0;accent-color:var(--sea);cursor:pointer;">
+        <div class="item-main" style="${checked ? 'opacity:.5;' : ''}">
+          <div class="item-name" style="${checked ? 'text-decoration:line-through;' : ''}"></div>
           <div class="item-platform"></div>
         </div>
         <div class="item-right">
-          <div class="item-price"></div>
+          <input type="number" class="item-price-input" data-idx="${it.idx}" value="${Number(it.price||0)}" step="0.01" min="0"
+            style="width:78px;font-family:'Fraunces',serif;font-weight:600;font-size:14px;color:var(--sea-deep);border:1.5px solid var(--sand-deep);border-radius:8px;padding:5px 6px;text-align:right;${checked ? 'opacity:.5;' : ''}">
           <button class="del-btn" title="Eliminar" data-idx="${it.idx}">✕</button>
         </div>
       `;
       li.querySelector('.item-name').textContent = it.name;
       li.querySelector('.item-platform').textContent = it.platform || 'Sin plataforma';
-      li.querySelector('.item-price').textContent = money(it.price);
       ul.appendChild(li);
     });
 
@@ -581,6 +583,27 @@ function renderItems(){
       render();
       await saveState();
     });
+  });
+
+  container.querySelectorAll('.bought-check').forEach(cb=>{
+    cb.addEventListener('change', async (e)=>{
+      const idx = Number(e.currentTarget.dataset.idx);
+      state.items[idx].bought = e.currentTarget.checked;
+      render();
+      await saveState();
+    });
+  });
+
+  container.querySelectorAll('.item-price-input').forEach(input=>{
+    input.addEventListener('change', async (e)=>{
+      const idx = Number(e.currentTarget.dataset.idx);
+      const newPrice = Number(e.currentTarget.value);
+      if(isNaN(newPrice) || newPrice < 0) { render(); return; }
+      state.items[idx].price = newPrice;
+      render();
+      await saveState();
+    });
+    input.addEventListener('click', (e)=> e.stopPropagation());
   });
 }
 
