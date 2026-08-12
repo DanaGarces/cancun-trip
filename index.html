@@ -368,6 +368,12 @@
     <div class="empty" id="emptyState">Aún no agregas nada. ¡Empieza tu lista! 🏖️</div>
   </div>
 
+  <div class="card">
+    <h2>Total por plataforma</h2>
+    <div id="platformTotals"></div>
+    <div class="empty" id="platformEmpty">Agrega cosas con su plataforma para ver el desglose. 🛍️</div>
+  </div>
+
   <div class="card total-card">
     <h2>Total acumulado</h2>
     <div class="total-figure" id="totalFigure">$0.00</div>
@@ -607,12 +613,62 @@ function renderItems(){
   });
 }
 
+function renderPlatformTotals(){
+  const container = $('platformTotals');
+  const empty = $('platformEmpty');
+  container.innerHTML = '';
+
+  if(state.items.length === 0){
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  const groups = {};
+  state.items.forEach(it => {
+    const plat = (it.platform && it.platform.trim()) ? it.platform.trim() : 'Sin plataforma';
+    if(!groups[plat]) groups[plat] = { total: 0, count: 0 };
+    groups[plat].total += Number(it.price||0);
+    groups[plat].count += 1;
+  });
+
+  const rows = Object.keys(groups).map(plat => ({
+    plat,
+    total: groups[plat].total,
+    count: groups[plat].count
+  })).sort((a,b)=> b.total - a.total);
+
+  const maxTotal = Math.max(...rows.map(r=> r.total), 1);
+
+  rows.forEach(r => {
+    const pct = (r.total / maxTotal) * 100;
+    const row = document.createElement('div');
+    row.style.marginBottom = '13px';
+    row.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;">
+        <span class="plat-name" style="font-weight:600;font-size:14px;"></span>
+        <span style="font-family:'Fraunces',serif;font-weight:600;font-size:15px;color:var(--sea-deep);">${money(r.total)}</span>
+      </div>
+      <div class="tide" style="height:22px;margin-bottom:0;">
+        <div class="tide-fill" style="width:${pct}%"></div>
+        <div class="tide-label" style="font-size:11px;">
+          <span></span>
+          <span style="opacity:.7;">${r.count} ${r.count === 1 ? 'cosa' : 'cosas'}</span>
+        </div>
+      </div>
+    `;
+    row.querySelector('.plat-name').textContent = r.plat;
+    container.appendChild(row);
+  });
+}
+
 function render(){
   $('budgetInput').value = state.budget ?? '';
   $('tripDate').value = state.tripDate ?? '';
   computeDays();
   computeMoney();
   renderItems();
+  renderPlatformTotals();
   $('backupText').value = btoa(unescape(encodeURIComponent(JSON.stringify(state))));
 }
 
